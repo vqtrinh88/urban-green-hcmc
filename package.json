@@ -1,0 +1,26 @@
+{
+  "name": "urban-green-hcmc",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.8",
+    "mapbox-gl": "^3.11.0",
+    "pinia": "^3.0.1",
+    "three": "^0.174.0",
+    "vue": "^3.5.32",
+    "vue-chartjs": "^5.3.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.5",
+    "vite": "^8.0.4"
+  }
+}
