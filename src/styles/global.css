@@ -146,11 +146,13 @@ h3 {
 .right-inner .overlay-card > h3 {
   margin: 0;
   padding: 0.5rem 0.75rem;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #fff;
   background: rgba(13, 40, 71, 1);
   border-radius: 8px 8px 0 0;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .left-inner .overlay-card-content,

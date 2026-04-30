@@ -14,7 +14,7 @@ let mapResizeCallback = null
 export const useDashboardStore = defineStore('dashboard', () => {
   const mapBounds = ref(null)
   /** @type {import('vue').Ref<'2d'|'3d'>} */
-  const mapMode = ref('2d')
+  const mapMode = ref('3d')
   const selectedTreeId = ref(null)
   const windSpeedMs = ref(0)
 

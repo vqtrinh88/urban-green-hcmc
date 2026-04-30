@@ -3,16 +3,16 @@
 This document defines the high-fidelity user experience (UX) flow, focusing on the transition from cinematic visualization to granular scientific data.
 
 ## Phase 1: The Cinematic "Vibe" Intro (0s - 5s)
-**Goal:** Establish the digital twin context of Ho Chi Minh City immediately upon load.
+~~**Goal:** Establish the digital twin context of Ho Chi Minh City immediately upon load.~~
 
-* The application initializes in **3D Mode**. The camera is positioned at a low-angle perspective.
-* A programmatic 5-second camera animation (tweening) follows a major urban corridor.
-* As the camera moves, small, non-blocking modal popups flicker briefly over trees as they pass the camera’s focal point, displaying snippet data (e.g., `ID: TR-01 | Healthy`).
+~~* The application initializes in **3D Mode**. The camera is positioned at a low-angle perspective.~~
+~~* A programmatic 5-second camera animation (tweening) follows a major urban corridor.~~
+~~* As the camera moves, small, non-blocking modal popups flicker briefly over trees as they pass the camera’s focal point, displaying snippet data (e.g., `ID: TR-01 | Healthy`).~~
 
 ## Phase 2: Dynamic Scaling & Global Metrics
-**Goal:** Maintain a real-time link between the map viewport and the dashboard telemetry.
+~~**Goal:** Maintain a real-time link between the map viewport and the dashboard telemetry.~~
 
-* As the user pans or zooms, the **Left Panel** must update dynamically.
+~~* As the user pans or zooms, the **Left Panel** must update dynamically.~~
 
 ## Phase 3: LiDAR "Deep Scan" Transition
 **Goal:** Transition from a general map to a high-precision arboricultural tool.

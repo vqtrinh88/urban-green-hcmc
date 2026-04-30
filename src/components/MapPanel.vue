@@ -6,8 +6,13 @@ import { useDashboardStore } from '@/stores/dashboard.js'
 import { MOCK_TREE_COLLECTION, CORRIDOR_START, CORRIDOR_END } from '@/utils/mockTrees.js'
 import { addTreeLayers2d, setTreeCircleVisibility, TREES_HIT_LAYER_ID } from '@/map/treeLayer2d.js'
 import { addBuildingExtrusionLayer, setBuildingLayerVisibility } from '@/map/buildingExtrusions.js'
-import { addTreesMeshLayer, removeTreesMeshLayer, TREES_MESH_LAYER_ID } from '@/map/treeMeshLayer.js'
+import {
+  addTreeIconLayer,
+  loadTreeMarkerImage,
+  setTreeIconLayerVisibility,
+} from '@/map/treeIconLayer.js'
 import { mountPopupTreePreview } from '@/map/popupTreePreview.js'
+import treeIconUrl from '@/assets/tree.png?url'
 import { healthVi, riskVi } from '@/utils/viLabels.js'
 
 const mapContainer = ref(null)
@@ -116,19 +121,19 @@ function wireTreeClicks() {
 }
 
 function applyMapMode(mode) {
-  if (!map || !map.isStyleLoaded()) return
+  if (!map) return
+  // Do not gate on map.isStyleLoaded(): Mapbox GL v3 can report false during/just after
+  // the `load` event, which would skip 3D setup and leave buildings hidden.
   if (mode === '3d') {
     map.easeTo({ pitch: 58, bearing: -18, duration: 700 })
     setBuildingLayerVisibility(map, true)
     setTreeCircleVisibility(map, { fillVisible: false, hitVisible: true })
-    if (!map.getLayer(TREES_MESH_LAYER_ID)) {
-      addTreesMeshLayer(map, () => store.treeCollection.features)
-    }
+    setTreeIconLayerVisibility(map, true)
   } else {
     map.easeTo({ pitch: 0, bearing: 0, duration: 700 })
     setBuildingLayerVisibility(map, false)
     setTreeCircleVisibility(map, { fillVisible: true, hitVisible: true })
-    removeTreesMeshLayer(map)
+    setTreeIconLayerVisibility(map, false)
   }
 }
 
@@ -141,33 +146,41 @@ onMounted(() => {
 
   mapboxgl.accessToken = token
 
+  const corridorCenter = [
+    (CORRIDOR_START.lng + CORRIDOR_END.lng) / 2,
+    (CORRIDOR_START.lat + CORRIDOR_END.lat) / 2,
+  ]
+  const start3d = store.mapMode === '3d'
   map = new mapboxgl.Map({
     container: mapContainer.value,
     style: 'mapbox://styles/mapbox/streets-v12',
-    center: [(CORRIDOR_START.lng + CORRIDOR_END.lng) / 2, (CORRIDOR_START.lat + CORRIDOR_END.lat) / 2],
+    center: corridorCenter,
     zoom: 17,
-    pitch: 0,
-    bearing: 0,
+    pitch: start3d ? 58 : 0,
+    bearing: start3d ? -18 : 0,
     antialias: true,
   })
 
   map.addControl(new mapboxgl.NavigationControl(), 'top-right')
 
   map.on('load', () => {
-    const bounds = new mapboxgl.LngLatBounds()
-    bounds.extend([CORRIDOR_START.lng, CORRIDOR_START.lat])
-    bounds.extend([CORRIDOR_END.lng, CORRIDOR_END.lat])
-    map.fitBounds(bounds, { padding: { top: 80, bottom: 80, left: 80, right: 80 }, maxZoom: 18 })
-
     addBuildingExtrusionLayer(map)
     setBuildingLayerVisibility(map, false)
     addTreeLayers2d(map, MOCK_TREE_COLLECTION)
-    wireTreeClicks()
-    syncBounds()
-    applyMapMode(store.mapMode)
 
-    store.registerMapResize(() => {
-      if (map) map.resize()
+    const finishMapInit = () => {
+      wireTreeClicks()
+      syncBounds()
+      applyMapMode(store.mapMode)
+
+      store.registerMapResize(() => {
+        if (map) map.resize()
+      })
+    }
+
+    loadTreeMarkerImage(map, treeIconUrl, () => {
+      addTreeIconLayer(map)
+      finishMapInit()
     })
   })
 
