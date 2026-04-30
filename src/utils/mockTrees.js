@@ -94,7 +94,7 @@ function evenlySpacedCorridorT(count) {
 }
 
 /** Bearing (rad, clockwise from north) of start→end along the corridor. */
-function corridorTrackBearingRad() {
+export function corridorTrackBearingRad() {
   const latMid = ((CORRIDOR_START.lat + CORRIDOR_END.lat) / 2) * (Math.PI / 180)
   const dLng = CORRIDOR_END.lng - CORRIDOR_START.lng
   const dLat = CORRIDOR_END.lat - CORRIDOR_START.lat
@@ -102,7 +102,7 @@ function corridorTrackBearingRad() {
 }
 
 /** Move (lat,lng) by `m` metres along `bearingRad` (from north). */
-function offsetMetres(lat, lng, bearingRad, m) {
+export function offsetMetres(lat, lng, bearingRad, m) {
   const latRad = (lat * Math.PI) / 180
   const north = Math.cos(bearingRad) * m
   const east = Math.sin(bearingRad) * m

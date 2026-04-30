@@ -3,7 +3,13 @@ import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useDashboardStore } from '@/stores/dashboard.js'
-import { MOCK_TREE_COLLECTION, CORRIDOR_START, CORRIDOR_END } from '@/utils/mockTrees.js'
+import {
+  MOCK_TREE_COLLECTION,
+  CORRIDOR_START,
+  CORRIDOR_END,
+  corridorTrackBearingRad,
+  offsetMetres,
+} from '@/utils/mockTrees.js'
 import { addTreeLayers2d, setTreeCircleVisibility, TREES_HIT_LAYER_ID } from '@/map/treeLayer2d.js'
 import { addBuildingExtrusionLayer, setBuildingLayerVisibility } from '@/map/buildingExtrusions.js'
 import {
@@ -11,6 +17,13 @@ import {
   loadTreeMarkerImage,
   setTreeIconLayerVisibility,
 } from '@/map/treeIconLayer.js'
+import {
+  createLidarLayer,
+  addLidarBackground,
+  removeLidarBackground,
+  removeLidarLayer,
+  LIDAR_LAYER_ID,
+} from '@/map/lidarLayer.js'
 import { mountPopupTreePreview } from '@/map/popupTreePreview.js'
 import treeIconUrl from '@/assets/tree.png?url'
 import { healthVi, riskVi } from '@/utils/viLabels.js'
@@ -19,11 +32,20 @@ const mapContainer = ref(null)
 const mapError = ref('')
 const store = useDashboardStore()
 
+const LIDAR_ZOOM = 19
+const POPUP_ZOOM = 20
+
+// Corridor bearing — constant for this dataset, computed once.
+const _corridorTrack = corridorTrackBearingRad()
+
 let map
 /** @type {mapboxgl.Popup | null} */
 let popup = null
 /** @type {null | (() => void)} */
 let disposePopupPreview = null
+let lidarActive = false
+/** @type {mapboxgl.Popup[]} */
+let lidarPopups = []
 
 function syncBounds() {
   if (!map) return
@@ -137,6 +159,139 @@ function applyMapMode(mode) {
   }
 }
 
+/** Compact popup HTML for LiDAR labels — same structure as treePopupHtml but with an info button. */
+function lidarPopupHtml(feature) {
+  const p = feature.properties
+  const esc = (s) =>
+    String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+    const safeId = esc(p.assetId)
+  return `
+    <div class="ug-popup ug-popup-split" style="font-size:0.8rem;">
+      <div class="ug-popup-info">
+        <div class="ug-popup-section-title">
+          ${safeId}
+          <button class="ug-lidar-info-btn" onclick="window.__ugLidarSelect('${safeId}')" title="Xem hồ sơ cây">i</button>
+        </div>
+        <div class="ug-popup-section-body">
+          <div class="ug-popup-id">${esc(p.commonName)}</div>
+          <div class="ug-popup-meta">Sức khỏe tán: <strong>${esc(healthVi(p.health))}</strong></div>
+          <div class="ug-popup-meta">Nguy cơ: <strong>${esc(riskVi(p.riskRating))}</strong></div>
+          <div class="ug-popup-height">Cao ${Number(p.heightM).toFixed(2)} m</div>
+          <div class="ug-popup-height">Đường kính tán ${Number(p.canopyDiameterM).toFixed(2)} m</div>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+/** Flat-earth distance in metres between two lng/lat points. */
+function metersBetween(lng1, lat1, lng2, lat2) {
+  const φ = (lat1 * Math.PI) / 180
+  const dx = (lng2 - lng1) * Math.cos(φ) * 111320
+  const dy = (lat2 - lat1) * 111320
+  return Math.sqrt(dx * dx + dy * dy)
+}
+
+const LIDAR_LABEL_MAX = 6
+
+function showLidarLabels() {
+  if (!map) return
+  const { lng, lat } = map.getCenter()
+
+  const sorted = [...MOCK_TREE_COLLECTION.features].sort((a, b) => {
+    const [aLng, aLat] = a.geometry.coordinates
+    const [bLng, bLat] = b.geometry.coordinates
+    return metersBetween(aLng, aLat, lng, lat) - metersBetween(bLng, bLat, lng, lat)
+  })
+
+  for (const f of sorted.slice(0, LIDAR_LABEL_MAX)) {
+    const [fLng, fLat] = f.geometry.coordinates
+    const side = f.properties.corridorSide        // 'L' or 'R'
+    const canopyR = (Number(f.properties.canopyDiameterM) || 3) / 2
+
+    // Project tree centre to screen space.
+    const centerPx = map.project([fLng, fLat])
+
+    // Compute the world-space position of the bounding-box's outer edge
+    // (canopy radius + small gap) then project it to get the screen X offset.
+    const perpBearing = side === 'L' ? _corridorTrack - Math.PI / 2 : _corridorTrack + Math.PI / 2
+    const { lat: eLat, lng: eLng } = offsetMetres(fLat, fLng, perpBearing, canopyR + 3)
+    const edgePx = map.project([eLng, eLat])
+
+    // xOffset: negative = left, positive = right
+    const xOffset = edgePx.x - centerPx.x
+    // anchor: 'right' → popup body extends left; 'left' → extends right
+    const anchor = side === 'L' ? 'right' : 'left'
+
+    const p = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      anchor,
+      offset: [xOffset, 0],
+      maxWidth: '200px',
+      className: 'ug-lidar-popup',
+    })
+      .setLngLat([fLng, fLat])
+      .setHTML(lidarPopupHtml(f))
+      .addTo(map)
+    lidarPopups.push(p)
+  }
+}
+
+function clearLidarLabels() {
+  for (const p of lidarPopups) p.remove()
+  lidarPopups = []
+}
+
+function onLidarMoveEnd() {
+  clearLidarLabels()
+  if (map && map.getZoom() > POPUP_ZOOM) showLidarLabels()
+}
+
+function enterLidarMode() {
+  if (!map || lidarActive) return
+  lidarActive = true
+  addLidarBackground(map)
+  setTreeCircleVisibility(map, { fillVisible: false, hitVisible: true })
+  setTreeIconLayerVisibility(map, false)
+  setBuildingLayerVisibility(map, false)
+  if (!map.getLayer(LIDAR_LAYER_ID)) {
+    map.addLayer(createLidarLayer(MOCK_TREE_COLLECTION))
+  }
+  map.on('moveend', onLidarMoveEnd)
+}
+
+function exitLidarMode() {
+  if (!map || !lidarActive) return
+  lidarActive = false
+  map.off('moveend', onLidarMoveEnd)
+  removeLidarLayer(map)
+  removeLidarBackground(map)
+  clearLidarLabels()
+  store.clearSelection()
+  applyMapMode(store.mapMode)
+}
+
+function onZoomChange() {
+  if (!map) return
+  const z = map.getZoom()
+  if (z >= LIDAR_ZOOM) {
+    enterLidarMode()
+    // Popups only above POPUP_ZOOM; clear them when zooming back below it
+    if (z > POPUP_ZOOM) {
+      if (lidarPopups.length === 0) showLidarLabels()
+    } else {
+      clearLidarLabels()
+      store.clearSelection()
+    }
+  } else {
+    exitLidarMode()
+  }
+}
+
 onMounted(() => {
   const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
   if (!token) {
@@ -145,6 +300,7 @@ onMounted(() => {
   }
 
   mapboxgl.accessToken = token
+  window.__ugLidarSelect = (id) => store.selectTree(id)
 
   const corridorCenter = [
     (CORRIDOR_START.lng + CORRIDOR_END.lng) / 2,
@@ -186,6 +342,7 @@ onMounted(() => {
 
   map.on('moveend', syncBounds)
   map.on('zoomend', syncBounds)
+  map.on('zoom', onZoomChange)
 })
 
 watch(
@@ -196,6 +353,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  delete window.__ugLidarSelect
   store.unregisterMapResize()
   if (disposePopupPreview) {
     disposePopupPreview()
@@ -204,6 +362,13 @@ onBeforeUnmount(() => {
   if (popup) {
     popup.off('close', onTreePopupClose)
     popup.remove()
+  }
+  if (lidarActive && map) {
+    map.off('moveend', onLidarMoveEnd)
+    removeLidarLayer(map)
+    removeLidarBackground(map)
+    clearLidarLabels()
+    lidarActive = false
   }
   map?.remove()
   map = null
@@ -394,4 +559,51 @@ onBeforeUnmount(() => {
     max-height: min(42vh, 280px);
   }
 }
+
+/* ── Compact overrides for LiDAR mode labels ── */
+.ug-lidar-info-btn {
+  float: right;
+  margin-left: 0.4rem;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 0.62rem;
+  font-style: italic;
+  font-weight: 700;
+  font-family: Georgia, serif;
+  cursor: pointer;
+  pointer-events: auto;
+  vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.ug-lidar-info-btn:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.ug-lidar-popup .mapboxgl-popup-content .ug-popup {
+  font-size: 0.65rem;
+}
+.ug-lidar-popup .mapboxgl-popup-content .ug-popup-section-title {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+}
+.ug-lidar-popup .mapboxgl-popup-content .ug-popup-section-body {
+  padding: 0.3rem 0.5rem 0.4rem;
+}
+.ug-lidar-popup .mapboxgl-popup-content .ug-popup-id {
+  font-size: 0.68rem;
+  margin-bottom: 0.2rem;
+}
+.ug-lidar-popup .mapboxgl-popup-content .ug-popup-meta,
+.ug-lidar-popup .mapboxgl-popup-content .ug-popup-height {
+  margin: 0.1rem 0;
+}
+
 </style>

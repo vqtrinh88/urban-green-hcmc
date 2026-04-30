@@ -4,6 +4,7 @@ import LeftPanel from '@/components/LeftPanel.vue'
 import MapPanel from '@/components/MapPanel.vue'
 import RightPanel from '@/components/RightPanel.vue'
 import { useDashboardStore } from '@/stores/dashboard.js'
+import logoUrl from '@/assets/logo.svg?url'
 
 const store = useDashboardStore()
 
@@ -19,6 +20,7 @@ onMounted(() => {
   <div class="shell">
     <header class="topbar">
       <div class="brand">
+        <img :src="logoUrl" alt="UrbanGreen logo" class="brand-logo" />
         <span class="brand-title">UrbanGreen HCMC</span>
       </div>
     </header>
@@ -62,8 +64,16 @@ onMounted(() => {
 
 .brand {
   display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.brand-logo {
+  height: 32px;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
 }
 
 .brand-title {
