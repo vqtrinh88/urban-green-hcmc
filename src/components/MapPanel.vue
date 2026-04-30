@@ -24,7 +24,6 @@ import {
   removeLidarLayer,
   LIDAR_LAYER_ID,
 } from '@/map/lidarLayer.js'
-import { mountPopupTreePreview } from '@/map/popupTreePreview.js'
 import treeIconUrl from '@/assets/tree.png?url'
 import { healthVi, riskVi } from '@/utils/viLabels.js'
 
@@ -41,8 +40,6 @@ const _corridorTrack = corridorTrackBearingRad()
 let map
 /** @type {mapboxgl.Popup | null} */
 let popup = null
-/** @type {null | (() => void)} */
-let disposePopupPreview = null
 let lidarActive = false
 /** @type {mapboxgl.Popup[]} */
 let lidarPopups = []
@@ -56,9 +53,8 @@ function syncBounds() {
   ])
 }
 
-function treePopupHtml(feature, canvasId) {
+function treePopupHtml(feature) {
   const p = feature.properties
-  const [lng, lat] = feature.geometry.coordinates
   const esc = (s) =>
     String(s ?? '')
       .replace(/&/g, '&amp;')
@@ -81,25 +77,14 @@ function treePopupHtml(feature, canvasId) {
 }
 
 function onTreePopupClose() {
-  if (disposePopupPreview) {
-    disposePopupPreview()
-    disposePopupPreview = null
-  }
   store.clearSelection()
 }
 
 function showPopup(lngLat, feature) {
-  if (disposePopupPreview) {
-    disposePopupPreview()
-    disposePopupPreview = null
-  }
   if (popup) {
     popup.off('close', onTreePopupClose)
     popup.remove()
   }
-
-  const safeId = String(feature.properties?.assetId ?? 'tree').replace(/[^a-zA-Z0-9_-]/g, '_')
-  const canvasId = `ug-tree-canvas-${safeId}-${Date.now()}`
 
   popup = new mapboxgl.Popup({
     closeButton: true,
@@ -108,23 +93,10 @@ function showPopup(lngLat, feature) {
     offset: [0, 0],
   })
     .setLngLat(lngLat)
-    .setHTML(treePopupHtml(feature, canvasId))
+    .setHTML(treePopupHtml(feature))
     .addTo(map)
 
   popup.on('close', onTreePopupClose)
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      if (!popup || !map) return
-      const canvas = document.getElementById(canvasId)
-      if (!canvas) return
-      try {
-        disposePopupPreview = mountPopupTreePreview(canvas, feature)
-      } catch (e) {
-        console.warn('Tree preview WebGL:', e)
-      }
-    })
-  })
 }
 
 function wireTreeClicks() {
@@ -355,10 +327,6 @@ watch(
 onBeforeUnmount(() => {
   delete window.__ugLidarSelect
   store.unregisterMapResize()
-  if (disposePopupPreview) {
-    disposePopupPreview()
-    disposePopupPreview = null
-  }
   if (popup) {
     popup.off('close', onTreePopupClose)
     popup.remove()

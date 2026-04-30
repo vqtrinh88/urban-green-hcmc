@@ -83,12 +83,6 @@ onMounted(() => {
   letter-spacing: -0.02em;
 }
 
-.brand-sub {
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.82);
-  font-weight: 600;
-}
-
 /* Map fills the stage; side panels float above (transparent shell) */
 .stage {
   position: relative;

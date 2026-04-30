@@ -5,7 +5,6 @@ import {
   aggregateTreesInBounds,
   filterFeaturesByBounds,
   priorityTrees,
-  hasWindRiskInventory,
 } from '@/utils/aggregateByBounds.js'
 
 /** Mapbox map.resize — registered by MapPanel when the map is ready. */
@@ -36,10 +35,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
       treeCollection.features.find((f) => f.properties.assetId === selectedTreeId.value) ?? null
     )
   })
-
-  const showWindBanner = computed(() =>
-    hasWindRiskInventory(treesInBounds.value, { windSpeedMs: windSpeedMs.value }),
-  )
 
   function setMapBounds(bounds) {
     mapBounds.value = bounds
@@ -84,7 +79,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
     aggregates,
     priorityList,
     selectedFeature,
-    showWindBanner,
     setMapBounds,
     setMapMode,
     selectTree,

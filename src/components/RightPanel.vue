@@ -1,7 +1,6 @@
 <script setup>
 import { computed } from 'vue'
 import { useDashboardStore } from '@/stores/dashboard.js'
-import { priorityActionChips } from '@/utils/aggregateByBounds.js'
 import { useClock } from '@/composables/useClock.js'
 import { useWeather } from '@/composables/useWeather.js'
 import { healthVi, riskVi } from '@/utils/viLabels.js'
@@ -11,11 +10,6 @@ const { now, formatDate, formatTime } = useClock()
 const { loading, error, data } = useWeather((ms) => store.setWindSpeed(ms))
 
 const sel = computed(() => store.selectedFeature)
-
-/** Only rows that render at least one chip (same list as the tag strip). */
-const priorityTop = computed(() =>
-  store.priorityList.filter((f) => priorityActionChips(f).length > 0).slice(0, 14),
-)
 
 function fmtTonnes(n) {
   if (n == null || Number.isNaN(Number(n))) return '—'
@@ -115,75 +109,6 @@ function fmtTonnes(n) {
   min-height: 0;
 }
 
-.wind-banner {
-  background: rgba(245, 158, 11, 0.25);
-  color: #92400e;
-  padding: 0.6rem 0.75rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
 
-.list {
-  list-style: none;
-  padding: 0;
-  margin: 0.5rem 0 0;
-}
-
-.list-item {
-  padding: 0.45rem 0;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  font-size: 0.85rem;
-}
-
-.list-item-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.35rem 0.5rem;
-  margin-bottom: 0.25rem;
-}
-
-.list-item-tags {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.id {
-  font-weight: 700;
-  color: var(--color-primary);
-}
-
-.tree-name {
-  font-size: 0.78rem;
-  color: var(--color-muted);
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tag {
-  font-size: 0.65rem;
-  background: rgba(240, 90, 35, 0.15);
-  color: var(--color-secondary);
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
-  font-weight: 600;
-}
-
-.tag-health {
-  background: rgba(245, 158, 11, 0.22);
-  color: #92400e;
-}
-
-.tag-risk {
-  background: rgba(30, 64, 175, 0.12);
-  color: #1e3a8a;
-}
 
 </style>

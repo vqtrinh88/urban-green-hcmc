@@ -115,10 +115,6 @@ function fmt(n, digits = 1) {
   background: transparent;
 }
 
-.intro {
-  margin-bottom: 0.85rem;
-}
-
 .chart-wrap {
   height: 220px;
   position: relative;
