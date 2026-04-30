@@ -47,8 +47,20 @@ function buildPreviewTreeGroup(props) {
  */
 export function mountPopupTreePreview(canvas, feature) {
   const props = feature.properties ?? {}
-  const w = canvas.clientWidth || 180
-  const h = canvas.clientHeight || 220
+  const parent = canvas.parentElement
+
+  function measure() {
+    const box = parent?.getBoundingClientRect?.() ?? canvas.getBoundingClientRect()
+    const w = Math.max(1, Math.floor(box.width))
+    const h = Math.max(1, Math.floor(box.height))
+    return { w, h }
+  }
+
+  let { w, h } = measure()
+  if (w < 4 || h < 4) {
+    w = canvas.clientWidth || 180
+    h = canvas.clientHeight || 220
+  }
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -80,6 +92,27 @@ export function mountPopupTreePreview(canvas, feature) {
   let raf = 0
   let alive = true
 
+  function resizeToParent() {
+    const { w: nw, h: nh } = measure()
+    if (nw < 2 || nh < 2) return
+    camera.aspect = nw / nh
+    camera.updateProjectionMatrix()
+    renderer.setSize(nw, nh, false)
+  }
+
+  const ro =
+    typeof ResizeObserver !== 'undefined' && parent
+      ? new ResizeObserver(() => {
+          if (!alive) return
+          resizeToParent()
+        })
+      : null
+  ro?.observe(parent)
+
+  requestAnimationFrame(() => {
+    if (alive) resizeToParent()
+  })
+
   function tick() {
     if (!alive) return
     const dt = clock.getDelta()
@@ -101,6 +134,7 @@ export function mountPopupTreePreview(canvas, feature) {
 
   return () => {
     alive = false
+    ro?.disconnect()
     cancelAnimationFrame(raf)
     disposeMesh(tree)
     scene.remove(tree)

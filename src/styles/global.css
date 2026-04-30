@@ -114,3 +114,181 @@ h3 {
   font-size: 0.75rem;
   font-weight: 600;
 }
+
+/* Side panel roots float over the map (shell is transparent) */
+.left-inner,
+.right-inner {
+  background: transparent;
+}
+
+/* Side panels: section stack + navy title strip + glass content (LeftPanel / RightPanel) */
+.left-inner .overlay-stack,
+.right-inner .overlay-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.left-inner .overlay-card,
+.right-inner .overlay-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+.right-inner .overlay-card-intro {
+  text-align: left;
+}
+
+.left-inner .overlay-card > h3,
+.right-inner .overlay-card > h3 {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(13, 40, 71, 1);
+  border-radius: 8px 8px 0 0;
+}
+
+.left-inner .overlay-card-content,
+.right-inner .overlay-card-content {
+  padding: 0.75rem 0.85rem;
+  color: #fff;
+  background: rgba(13, 40, 71, 0.7);
+  border-radius: 0 0 8px 8px;
+}
+
+.left-inner .overlay-card-content .muted,
+.right-inner .overlay-card-content .muted {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.left-inner .overlay-card-content .clock,
+.right-inner .overlay-card-content .clock {
+  color: #fff;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.left-inner .overlay-card-content .kpi-card,
+.right-inner .overlay-card-content .kpi-card {
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.left-inner .overlay-card-content .kpi-card .label,
+.right-inner .overlay-card-content .kpi-card .label {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.left-inner .overlay-card-content .kpi-card .value,
+.right-inner .overlay-card-content .kpi-card .value {
+  color: #fff;
+}
+
+.left-inner .overlay-card-content .kpi-card .value.kpi-value-label,
+.right-inner .overlay-card-content .kpi-card .value.kpi-value-label {
+  color: rgb(77, 250, 198);
+}
+
+.left-inner .overlay-card-content h4,
+.right-inner .overlay-card-content h4 {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0.65rem 0 0.25rem;
+}
+
+.left-inner .overlay-card-content h4:first-of-type,
+.right-inner .overlay-card-content h4:first-of-type {
+  margin-top: 0;
+}
+
+.left-inner .overlay-card-content .sci,
+.right-inner .overlay-card-content .sci {
+  margin: 0.35rem 0;
+  color: #fff;
+}
+
+.left-inner .overlay-card-content .sci i,
+.right-inner .overlay-card-content .sci i {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.left-inner .overlay-card-content .mono,
+.right-inner .overlay-card-content .mono {
+  font-family: ui-monospace, monospace;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.left-inner .overlay-card-content .kv,
+.right-inner .overlay-card-content .kv {
+  list-style: none;
+  padding: 0;
+  margin: 0.35rem 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+.left-inner .overlay-card-content .kv:last-child,
+.right-inner .overlay-card-content .kv:last-child {
+  margin-bottom: 0;
+}
+
+.left-inner .overlay-card-content .kv li,
+.right-inner .overlay-card-content .kv li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+.left-inner .overlay-card-content .kv span,
+.right-inner .overlay-card-content .kv span {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.left-inner .overlay-card-content .kv strong,
+.right-inner .overlay-card-content .kv strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.left-inner .mock-note,
+.right-inner .mock-note {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.weather-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, auto);
+  gap: 0.5rem;
+}
+
+.kpi-label {
+  margin-bottom: 0.5rem;
+}
+
+.weather-kpi-full {
+  grid-column: 1 / -1;
+}
+
+.kpi-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.kpi-grid-3 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.kpi-grid-3 .kpi-card:first-child {
+  grid-column: 1 / -1;
+}

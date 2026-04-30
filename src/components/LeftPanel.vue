@@ -37,7 +37,11 @@ const chartOptions = {
   plugins: {
     legend: {
       position: 'bottom',
-      labels: { boxWidth: 10, font: { size: 10 } },
+      labels: {
+        boxWidth: 10,
+        font: { size: 10 },
+        color: 'rgba(255, 255, 255, 0.88)',
+      },
     },
   },
   cutout: '58%',
@@ -54,74 +58,70 @@ function fmt(n, digits = 1) {
 
 <template>
   <div class="left-inner scroll-y">
-    <h2>Hệ sinh thái</h2>
-    <p class="muted">Số liệu cập nhật theo phạm vi bản đồ hiện tại.</p>
+    <div class="overlay-stack">
+      <section class="overlay-card" aria-label="Số lượng và sinh trắc trung bình">
+        <h3>Thống kê cây trong vùng</h3>
+        <div class="overlay-card-content">
+          <div class="kpi-grid kpi-grid-3">
+            <div class="kpi-card">
+              <div class="label kpi-label">Lượng cây trong vùng</div>
+              <div class="value kpi-value-label">{{ fmt(agg.count, 0) }}</div>
+            </div>
+            <div class="kpi-card">
+              <div class="label kpi-label">Chiều cao TB (m)</div>
+              <div class="value kpi-value-label">{{ fmt(agg.avgHeightM) }}</div>
+            </div>
+            <div class="kpi-card">
+              <div class="label kpi-label">ĐK thân TB (cm)</div>
+              <div class="value kpi-value-label">{{ fmt(agg.avgDbhCm) }}</div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="label">Lượng cây trong vùng</div>
-        <div class="value">{{ fmt(agg.count, 0) }}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="label">Chiều cao TB (m)</div>
-        <div class="value">{{ fmt(agg.avgHeightM) }}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="label">ĐK thân TB (cm)</div>
-        <div class="value">{{ fmt(agg.avgDbhCm) }}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="label">Tổng sinh khối (t)</div>
-        <div class="value">{{ fmt(agg.totalAgbTonnes, 0) }}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="label">CO₂ tích trữ (t)</div>
-        <div class="value">{{ fmt(agg.totalCo2StoredTonnes, 0) }}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="label">CO₂ hàng năm (ước tính)</div>
-        <div class="value">{{ fmt(agg.totalAnnualCo2Tonnes, 0) }}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="label">O₂ hàng năm (ước tính)</div>
-        <div class="value">{{ fmt(agg.totalAnnualO2Tonnes, 0) }}</div>
-      </div>
-    </div>
+      <section class="overlay-card" aria-label="Định lượng hệ sinh thái">
+        <h3>Định lượng hệ sinh thái</h3>
+        <div class="overlay-card-content">
+          <ul class="kv">
+            <li><span>Tổng sinh khối (t)</span><strong>{{ fmt(agg.totalAgbTonnes, 0) }}</strong></li>
+            <li><span>CO₂ tích trữ (t)</span><strong>{{ fmt(agg.totalCo2StoredTonnes, 0) }}</strong></li>
+            <li><span>CO₂ hàng năm (ước tính)</span><strong>{{ fmt(agg.totalAnnualCo2Tonnes, 0) }}</strong></li>
+            <li><span>O₂ hàng năm (ước tính)</span><strong>{{ fmt(agg.totalAnnualO2Tonnes, 0) }}</strong></li>
+          </ul>
+        </div>
+      </section>
 
-    <h3>Phân bố sức khỏe tán</h3>
-    <div class="chart-wrap">
-      <Doughnut
-        v-if="agg.count > 0"
-        :key="healthChartKey"
-        :data="chartData"
-        :options="chartOptions"
-      />
-      <p v-else class="muted">Di chuyển bản đồ để hiển thị cây trong vùng nhìn.</p>
+      <section class="overlay-card overlay-card-chart" aria-label="Phân bố sức khỏe tán">
+        <h3>Phân bố sức khỏe tán</h3>
+        <div class="overlay-card-content">
+          <div class="chart-wrap">
+            <Doughnut
+              v-if="agg.count > 0"
+              :key="healthChartKey"
+              :data="chartData"
+              :options="chartOptions"
+            />
+            <p v-else class="muted">Di chuyển bản đồ để hiển thị cây trong vùng nhìn.</p>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </template>
 
 <style scoped>
 .left-inner {
-  padding: 1rem;
   height: 100%;
+  background: transparent;
 }
 
-.kpi-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+.intro {
+  margin-bottom: 0.85rem;
 }
 
 .chart-wrap {
   height: 220px;
   position: relative;
-  margin-top: 0.5rem;
-}
-
-h3 {
-  font-size: 0.95rem;
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
 }
 </style>

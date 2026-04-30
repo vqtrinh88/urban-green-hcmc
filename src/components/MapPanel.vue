@@ -38,21 +38,27 @@ function treePopupHtml(feature, canvasId) {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
   return `
-    <div class="ug-popup ug-popup-split">
-      <div class="ug-popup-preview" aria-hidden="true">
-        <canvas id="${canvasId}" width="180" height="220"></canvas>
-      </div>
+    <div class="ug-popup ug-popup-split" style="font-size:0.8rem;">
       <div class="ug-popup-info">
-        <div class="ug-popup-id">${esc(p.assetId)}</div>
-        <div class="ug-popup-coord">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
-        <div class="ug-popup-species">${esc(p.commonName)} / <i>${esc(p.scientificName)}</i></div>
-        <div class="ug-popup-meta">Sức khỏe tán: <strong>${esc(healthVi(p.health))}</strong></div>
-        <div class="ug-popup-meta">Nguy cơ: <strong>${esc(riskVi(p.riskRating))}</strong></div>
-        <div class="ug-popup-height">Cao ${Number(p.heightM).toFixed(2)} m</div>
-        <div class="ug-popup-height">Đường kính tán ${Number(p.canopyDiameterM).toFixed(2)} m</div>
+        <div class="ug-popup-section-title">${esc(p.assetId)}</div>
+        <div class="ug-popup-section-body">
+          <div class="ug-popup-id">${esc(p.commonName)}</div>
+          <div class="ug-popup-meta">Sức khỏe tán: <strong>${esc(healthVi(p.health))}</strong></div>
+          <div class="ug-popup-meta">Nguy cơ: <strong>${esc(riskVi(p.riskRating))}</strong></div>
+          <div class="ug-popup-height">Cao ${Number(p.heightM).toFixed(2)} m</div>
+          <div class="ug-popup-height">Đường kính tán ${Number(p.canopyDiameterM).toFixed(2)} m</div>
+        </div>
       </div>
     </div>
   `
+}
+
+function onTreePopupClose() {
+  if (disposePopupPreview) {
+    disposePopupPreview()
+    disposePopupPreview = null
+  }
+  store.clearSelection()
 }
 
 function showPopup(lngLat, feature) {
@@ -60,22 +66,25 @@ function showPopup(lngLat, feature) {
     disposePopupPreview()
     disposePopupPreview = null
   }
-  if (popup) popup.remove()
+  if (popup) {
+    popup.off('close', onTreePopupClose)
+    popup.remove()
+  }
 
   const safeId = String(feature.properties?.assetId ?? 'tree').replace(/[^a-zA-Z0-9_-]/g, '_')
   const canvasId = `ug-tree-canvas-${safeId}-${Date.now()}`
 
-  popup = new mapboxgl.Popup({ closeButton: true, maxWidth: '520px' })
+  popup = new mapboxgl.Popup({
+    closeButton: true,
+    maxWidth: '560px',
+    anchor: 'bottom',
+    offset: [0, 0],
+  })
     .setLngLat(lngLat)
     .setHTML(treePopupHtml(feature, canvasId))
     .addTo(map)
 
-  popup.on('close', () => {
-    if (disposePopupPreview) {
-      disposePopupPreview()
-      disposePopupPreview = null
-    }
-  })
+  popup.on('close', onTreePopupClose)
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
@@ -179,7 +188,10 @@ onBeforeUnmount(() => {
     disposePopupPreview()
     disposePopupPreview = null
   }
-  if (popup) popup.remove()
+  if (popup) {
+    popup.off('close', onTreePopupClose)
+    popup.remove()
+  }
   map?.remove()
   map = null
 })
@@ -215,15 +227,30 @@ onBeforeUnmount(() => {
 </style>
 
 <style>
+/*
+ * Avoid position/width tricks on .mapboxgl-popup — Mapbox positions via transform;
+ * extra positioning or fit/max-content widths can throw off anchor math.
+ */
 .mapboxgl-popup .mapboxgl-popup-content {
-  border-radius: 12px;
-  border: 2px solid var(--color-primary, rgb(20, 80, 140));
-  box-shadow: 0 4px 18px rgba(20, 80, 140, 0.12);
-  padding: 14px 2.75rem 12px 14px;
-  overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
+  width: auto;
+  max-width: min(560px, calc(100vw - 24px));
+  background: transparent !important;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 0;
+  overflow: visible;
 }
 
+/* Close control sits over the card (sibling of .mapboxgl-popup-content) */
 .mapboxgl-popup .mapboxgl-popup-close-button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 20;
+  margin: 0;
   font-size: 1.75rem;
   line-height: 1;
   width: 2.5rem;
@@ -232,64 +259,115 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   padding: 0;
-  color: var(--color-primary, rgb(20, 80, 140));
+  color: rgba(255, 255, 255, 0.95);
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  cursor: pointer;
 }
 
 .mapboxgl-popup .mapboxgl-popup-close-button:hover {
-  background-color: rgba(20, 80, 140, 0.08);
+  background-color: transparent;
 }
 
 .mapboxgl-popup-content .ug-popup {
+  position: relative;
+  z-index: 1;
   font-family: var(--font-stack, sans-serif);
   font-size: 1rem;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 2px solid var(--color-primary, rgb(20, 80, 140));
+  box-shadow: 0 4px 18px rgba(20, 80, 140, 0.12);
+  overflow: hidden;
 }
 
 .mapboxgl-popup-content .ug-popup-split {
   display: flex;
   flex-direction: row;
-  gap: 12px;
+  gap: 0;
   align-items: stretch;
+  width: 100%;
   min-width: 0;
+  min-height: 0;
 }
 
 .mapboxgl-popup-content .ug-popup-preview {
-  flex: 0 0 180px;
-  align-self: center;
+  position: relative;
+  flex: 0 0 clamp(140px, 22vw, 240px);
+  width: clamp(140px, 22vw, 240px);
+  align-self: stretch;
+  min-height: 0;
+  background: transparent;
 }
 
+.mapboxgl-popup-content .ug-popup-preview-canvas,
 .mapboxgl-popup-content .ug-popup-preview canvas {
+  position: absolute;
+  inset: 0;
   display: block;
-  width: 180px;
-  height: 220px;
-  border-radius: 10px;
-  background: linear-gradient(165deg, #e8f4fc 0%, #dbeafe 55%, #cfe8f8 100%);
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  background: transparent;
 }
 
 .mapboxgl-popup-content .ug-popup-info {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Match side-panel section: .overlay-card > h3 */
+.mapboxgl-popup-content .ug-popup-section-title {
+  margin: 0;
+  padding: 0.5rem 2.75rem 0.5rem 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(13, 40, 71, 0.9);
+  border-radius: 0;
+  text-align: center;
+  line-height: 1.25;
+  min-width: 215px;
+}
+
+/* Match .overlay-card-content */
+.mapboxgl-popup-content .ug-popup-section-body {
+  padding: 0.75rem 0.85rem;
+  color: #fff;
+  background: rgba(13, 40, 71, 0.7);
+  border-radius: 0 0 8px 8px;
 }
 
 .mapboxgl-popup-content .ug-popup-id {
-  font-weight: 700;
-  color: var(--color-primary, rgb(20, 80, 140));
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 1);
+  text-align: center;
+  margin: 0 0 0.5rem;
 }
 .mapboxgl-popup-content .ug-popup-coord {
   color: #64748b;
   margin-bottom: 0.35rem;
 }
-.mapboxgl-popup-content .ug-popup-species {
-  margin: 0.2rem 0 1rem 0;
-  line-height: 1.35;
-  color: #1e293b;
-}
 .mapboxgl-popup-content .ug-popup-meta {
-  color: #475569;
-  margin-bottom: 0.25rem;
+  color: rgba(255, 255, 255, 1);
+  margin: 0.2rem 0;
+}
+.mapboxgl-popup-content .ug-popup-meta strong {
+  color: #fff;
+  font-weight: 600;
 }
 .mapboxgl-popup-content .ug-popup-height {
-  margin-top: 0.15rem;
-  color: #334155;
+  color: rgba(255, 255, 255, 0.88);
+  margin: 0.2rem 0 0;
 }
 
 @media (max-width: 440px) {
@@ -297,9 +375,10 @@ onBeforeUnmount(() => {
     flex-direction: column;
   }
   .mapboxgl-popup-content .ug-popup-preview {
-    flex: none;
+    flex: 0 0 auto;
     width: 100%;
-    align-self: center;
+    min-height: 200px;
+    max-height: min(42vh, 280px);
   }
 }
 </style>
